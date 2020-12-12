@@ -65,11 +65,13 @@ def box_settings(filename, ph_box = nil, s_pump_box = nil)
   end
 end
 
+filename = "/Dropbox/Dropbox/LAb/Workplace/Q4/10Dec Titrations/5.5mg-QuinKAT-VID_20201210_063810.mp4"
+raise "Input movie filename in ARGV!" unless filename
+#smplname = 
 Dir.mkdir("temp") if !(Dir.exist?("temp"))
 Dir.mkdir("temp/ph") if !(Dir.exist?("temp/ph"))
 Dir.mkdir("temp/pump") if !(Dir.exist?("temp/pump"))
 Dir.mkdir("temp/preview") if !(Dir.exist?("temp/preview"))
-filename = './Data/PyKAT.mp4'
 
 
 # Phase 1: Grab video parameters, determine timeframe and cropbox, show result
@@ -83,6 +85,7 @@ else
   ph_box = [100, 100, 200, 100]
   s_pump_box = [300, 300, 200, 100]
 end
+
 puts "Preview to align cropboxes?"
 ans = gets.chomp
 if ans == 'y'
@@ -93,8 +96,9 @@ while true
   puts "Video length: #{mov.duration} seconds"
   puts "Taking preview at 5% and 95% time"
   #mov.screenshot('./temp/preview/5pc.jpg', seek_time: (mov.duration*0.05).to_i, validate: false)
-  result = `ffmpeg -ss #{(mov.duration*0.05).to_i} -i #{filename} -vframes 1 ./temp/preview/05pc.jpg -q 1 -y -loglevel 8`
-  result = `ffmpeg -ss #{(mov.duration*0.95).to_i} -i #{filename} -vframes 1 ./temp/preview/95pc.jpg -q 1 -y -loglevel 8`
+  #puts "ffmpeg -ss #{(mov.duration*0.05).to_i} -i #{filename} -vframes 1 ./temp/preview/05pc.jpg -q 1 -y -loglevel 8"
+  puts `ffmpeg -ss #{(mov.duration*0.05).to_i} -i \"#{filename}\" -vframes 1 ./temp/preview/05pc.jpg -q 1 -y -loglevel 8`
+  puts `ffmpeg -ss #{(mov.duration*0.95).to_i} -i \"#{filename}\" -vframes 1 ./temp/preview/95pc.jpg -q 1 -y -loglevel 8`
   #mov = FFMPEG::Movie.new(filename)
   #mov.screenshot('./temp/preview/95pc.jpg', seek_time: (mov.duration*0.95).to_i, validate: false)
   draw_boxes(ph_box, s_pump_box, './temp/preview/05pc.jpg')
@@ -151,7 +155,9 @@ frames.each do |frame|
   puts "Processing frame #{frame_name}"
   ocr_out.puts frame_name
   ocr_out.puts RTesseract.new("./temp/pump/#{frame_name}.jpg").to_box
-  ocr_out.puts "pH: " + RTesseract.new("./temp/ph/#{frame_name}.jpg", options: :digits, :lang => 'ssd', :psm => 8).to_box.to_s
+  #ocr_out.puts "pH: " + RTesseract.new("./temp/ph/#{frame_name}.jpg", options: :digits, :lang => 'ssd', :psm => 8).to_box.to_s
+  ph_result = `ssocr -d -1 -c decimal ./temp/ph/#{frame_name}.jpg`.to_f
+  ocr_out.puts "pH: #{ph_result}"
   ocr_out.puts "--"
 end
 ocr_out.close

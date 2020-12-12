@@ -1,9 +1,9 @@
 #!/usr/bin/ruby
 #Processing OCR result
 
-ocr_file = 'QuinKAT.ocr'
-time_start_coord = [175,186,1,10]
-volume_start_coord = [158,170,80,95]
+ocr_file = 'ocr.out'
+time_start_coord = [180,186,0,8]
+volume_start_coord = [170,190,78,88]
 
 fin = File.open(ocr_file, 'r')
 result = Array.new { ["", "", "", ""] } #frame_name, time, volume, pH
@@ -36,16 +36,16 @@ fin.each_line do |line|
     volume = word
     #puts volume
   end
-  
-  if line =~/^pH/
-    ph = line.split(':word=>"')[1].split('",')[0].to_s
-    #puts ph
+  rescue
   end
-rescue
-end
+  if line =~ /^pH/
+    #ph = line.split(':word=>"')[1].split('",')[0].to_s
+    ph = line.split(': ')[1]
+  end
+
 end
 
-tsvoutfile = 'QuinKAT.tsv'
+tsvoutfile = 'K2CO3-ssocr.tsv'
 fout = File.open(tsvoutfile, "w")
 
 result.each do |point|
