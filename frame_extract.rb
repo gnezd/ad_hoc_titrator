@@ -143,11 +143,15 @@ if ans == 'y'
 #mov.screenshot("./temp/frame%d.jpg", { vframes: mov.duration.to_i, frame_rate: '1', quality: 1}, validate: false)
 result = `ffmpeg -i #{filename} -f image2 -vframes 600 -r 1 -q:v 1 ./temp/frame%03d.jpg -y`
 end
-# Phase 3: OCR, put in html table for human check
+
+# Phase 3: OCR, put in html table for human check?
 puts "Going on to OCR"
 ocr_out =File.open("ocr.out", "w")
 frames = Dir.glob("./temp/frame*.jpg").sort
-frames.each do |frame|
+pHs = Array.new(frames.size)
+s_pump_boxes = Array.new(frames.size) {Hash.new}
+
+frames.each_with_index do |frame, index|
   frame_name = File.basename(frame, ".jpg")
   image = Vips::Image.new_from_file frame
   ph_reading = image.crop(ph_box[0], ph_box[1], ph_box[2], ph_box[3])
@@ -155,11 +159,11 @@ frames.each do |frame|
   ph_reading.write_to_file("./temp/ph/#{frame_name}.jpg")
   s_pump_reading.write_to_file("./temp/pump/#{frame_name}.jpg")
 
-  #OCR
+  # OCR
   puts "Processing frame #{frame_name}"
   ocr_out.puts frame_name
   ocr_out.puts RTesseract.new("./temp/pump/#{frame_name}.jpg").to_box
-  #ocr_out.puts "pH: " + RTesseract.new("./temp/ph/#{frame_name}.jpg", options: :digits, :lang => 'ssd', :psm => 8).to_box.to_s
+  # ocr_out.puts "pH: " + RTesseract.new("./temp/ph/#{frame_name}.jpg", options: :digits, :lang => 'ssd', :psm => 8).to_box.to_s
   ph_result = `ssocr -d -1 -c decimal ./temp/ph/#{frame_name}.jpg`.to_f
   ocr_out.puts "pH: #{ph_result}"
   ocr_out.puts "--"
