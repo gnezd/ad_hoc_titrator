@@ -34,6 +34,10 @@ def draw_boxes(ph_box, s_pump_box, filename)
   image = Vips::Image.new_from_file filename
   image = image.draw_rect([255, 50, 50], ph_box[0], ph_box[1], ph_box[2], ph_box[3])
   image = image.draw_rect([50, 255, 50], s_pump_box[0], s_pump_box[1], s_pump_box[2], s_pump_box[3])
+  overlay_text = Vips::Image.text('pH box', :font => 'sans 30')#.copy(:interpretation => :rgb)
+  image = image.composite(overlay_text, :over, :x => ph_box[0], :y => ph_box[1]-30)
+  overlay_text = Vips::Image.text('Syringe pump box', :font => 'sans 30')#.copy(:interpretation => :rgb)
+  image = image.composite(overlay_text, :over, :x => s_pump_box[0], :y => s_pump_box[1]-30)
   image.write_to_file filename
 end
 
