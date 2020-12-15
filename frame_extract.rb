@@ -65,7 +65,7 @@ def box_settings(filename, ph_box = nil, s_pump_box = nil)
   end
 end
 
-filename = "/Dropbox/Dropbox/LAb/Workplace/Q4/10Dec Titrations/5.5mg-QuinKAT-VID_20201210_063810.mp4"
+filename = "../../titration_videos/5.5mg-QuinKAT-VID_20201210_063810.mp4"
 raise "Input movie filename in ARGV!" unless filename
 #smplname = 
 Dir.mkdir("temp") if !(Dir.exist?("temp"))
@@ -156,8 +156,10 @@ frames.each do |frame|
   ocr_out.puts frame_name
   ocr_out.puts RTesseract.new("./temp/pump/#{frame_name}.jpg").to_box
   #ocr_out.puts "pH: " + RTesseract.new("./temp/ph/#{frame_name}.jpg", options: :digits, :lang => 'ssd', :psm => 8).to_box.to_s
-  ph_result = `ssocr -d -1 -c decimal ./temp/ph/#{frame_name}.jpg`.to_f
-  ocr_out.puts "pH: #{ph_result}"
+  ph_result = `ssocr -d -1 -c digits ./temp/ph/#{frame_name}.jpg`.chomp
+  ph_result = ph_result.gsub('_', '')
+  #ph = ph_result[0].to_f + ph_result[-2..-1].to_i / 100  #specific
+  ocr_out.puts "pH: #{ph_result[0]}.#{ph_result[-2..-1]}"
   ocr_out.puts "--"
 end
 ocr_out.close

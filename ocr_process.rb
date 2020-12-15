@@ -2,6 +2,7 @@
 #Processing OCR result
 
 ocr_file = 'ocr.out'
+#the values of time and volume still needs to be manually input
 time_start_coord = [180,186,0,8]
 volume_start_coord = [170,190,78,88]
 
