@@ -95,6 +95,8 @@ unless ans == 'Y' || ans == 'y'
   puts "Taking secondwise shots every second from 0 to the end. Proceed? (y/N)"
   ans = $stdin.gets.chomp
   if ans == 'y'
+    puts "Clearing existing frames if any."
+    puts `rm ./temp/frame*.jpg`
     result = `ffmpeg -i #{filename} -f image2 -vframes 600 -r 1 -q:v 1 ./temp/frame%03d.jpg -y`
   else
     puts "Aborting."
@@ -118,7 +120,8 @@ ans = $stdin.gets.chomp
 if ans == 'y'
   while true
     puts "--Cropboxes preview--"
-    puts "Taking preview at 5% and 95% time"
+    puts "Taking preview at 5% and 95% time. Clearing old previews."
+    puts `rm ./temp/preview/*`
     previews = [frames[(0.05 * frames.size).to_i], frames[(0.95 * frames.size).to_i]]
     `cp '#{previews[0]}' './temp/preview/05pc.jpg'`
     `cp '#{previews[1]}' './temp/preview/95pc.jpg'`
@@ -154,7 +157,8 @@ if ans == 'y'
 end
 
 # OCR, put in html table for human check?
-puts "Going on to OCR"
+puts "Going on to OCR. Clearing temporary cropped frames."
+puts `rm ./temp/ph/*.jpg; rm ./temp/pump/*.jpg`
 ocr_out =File.open("ocr.out", "w")
 pHs = Array.new(frames.size)
 s_pump_boxes = Array.new(frames.size) {Hash.new}
