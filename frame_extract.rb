@@ -69,18 +69,41 @@ def box_settings(filename, ph_box = nil, s_pump_box = nil)
   end
 end
 
-filename = "../../titration_videos/5.5mg-QuinKAT-VID_20201210_063810.mp4"
-raise "Input movie filename in ARGV!" unless filename
-#smplname = 
+filename = ARGV[0]
 Dir.mkdir("temp") if !(Dir.exist?("temp"))
 Dir.mkdir("temp/ph") if !(Dir.exist?("temp/ph"))
 Dir.mkdir("temp/pump") if !(Dir.exist?("temp/pump"))
 Dir.mkdir("temp/preview") if !(Dir.exist?("temp/preview"))
 
+frames = Dir.glob("./temp/frame*.jpg").sort # Find existing frames
+unless frames == []
+  puts "Found some decoded frames under './temp'. Work with these (Y) or read in a new movie file (n)?"
+  ans = $stdin.gets.chomp
+end
 
-# Phase 1: Grab video parameters, determine timeframe and cropbox, show result
-#ask for cropbox input if setting isn't there
-# Crop box for pH reading
+unless ans == 'Y' || ans == 'y'
+  if filename == nil
+    puts "Type in movie file name:"
+    filename = $stdin.gets.chomp
+  end
+
+  puts "Opening file #{filename}"
+  mov = FFMPEG::Movie.new(filename)
+  puts "Video length: #{mov.duration} seconds"
+
+  # Execute the screenshotting
+  puts "Taking secondwise shots every second from 0 to the end. Proceed? (y/N)"
+  ans = $stdin.gets.chomp
+  if ans == 'y'
+    result = `ffmpeg -i #{filename} -f image2 -vframes 600 -r 1 -q:v 1 ./temp/frame%03d.jpg -y`
+  else
+    puts "Aborting."
+    exit
+  end
+  frames = Dir.glob("./temp/frame*.jpg").sort # Load frames
+end
+
+# Determine cropboxes, show result if demanded
 puts "Attemting reading boxes settings..."
 if File.exist? 'boxes.settings'
   ph_box, s_pump_box = box_settings('./boxes.settings')
@@ -91,63 +114,48 @@ else
 end
 
 puts "Preview to align cropboxes?"
-ans = gets.chomp
+ans = $stdin.gets.chomp
 if ans == 'y'
-while true
-  puts "--Cropboxes preview--"
-  mov = FFMPEG::Movie.new(filename)
-  puts "Opening file #{filename}"
-  puts "Video length: #{mov.duration} seconds"
-  puts "Taking preview at 5% and 95% time"
-  #mov.screenshot('./temp/preview/5pc.jpg', seek_time: (mov.duration*0.05).to_i, validate: false)
-  #puts "ffmpeg -ss #{(mov.duration*0.05).to_i} -i #{filename} -vframes 1 ./temp/preview/05pc.jpg -q 1 -y -loglevel 8"
-  puts `ffmpeg -ss #{(mov.duration*0.05).to_i} -i \"#{filename}\" -vframes 1 ./temp/preview/05pc.jpg -q 1 -y -loglevel 8`
-  puts `ffmpeg -ss #{(mov.duration*0.95).to_i} -i \"#{filename}\" -vframes 1 ./temp/preview/95pc.jpg -q 1 -y -loglevel 8`
-  #mov = FFMPEG::Movie.new(filename)
-  #mov.screenshot('./temp/preview/95pc.jpg', seek_time: (mov.duration*0.95).to_i, validate: false)
-  draw_boxes(ph_box, s_pump_box, './temp/preview/05pc.jpg')
-  draw_boxes(ph_box, s_pump_box, './temp/preview/95pc.jpg')
-  pop_preview
-  puts "Current crop boxes:"
-  puts "pH meter box: #{ph_box}"
-  puts "Syringe pump box: #{s_pump_box}"
-  puts "Change? (y/N)"
-  ans = gets.chomp
-  break unless ans == 'y'
+  while true
+    puts "--Cropboxes preview--"
+    puts "Taking preview at 5% and 95% time"
+    previews = [frames[(0.05 * frames.size).to_i], frames[(0.95 * frames.size).to_i]]
+    `cp '#{previews[0]}' './temp/preview/05pc.jpg'`
+    `cp '#{previews[1]}' './temp/preview/95pc.jpg'`
+    draw_boxes(ph_box, s_pump_box, './temp/preview/05pc.jpg')
+    draw_boxes(ph_box, s_pump_box, './temp/preview/95pc.jpg')
+    pop_preview
+    puts "Current crop boxes:"
+    puts "pH meter box: #{ph_box}"
+    puts "Syringe pump box: #{s_pump_box}"
+    puts "Change? (y/N)"
+    ans = $stdin.gets.chomp
+    break unless ans == 'y'
 
-  puts "Set pH meter box:"
-  result = gets.chomp.split(',').map{ |field| field.to_i }
-  if result.size == 4
-    ph_box = result
-  else
-    puts "Error parsing pH meter box parameters. 4 Integers spaced by comma required."
-    redo
+    puts "Set pH meter box:"
+    result = $stdin.gets.chomp.split(',').map{ |field| field.to_i }
+    if result.size == 4
+      ph_box = result
+    else
+      puts "Error parsing pH meter box parameters. 4 integers spaced by comma required."
+      redo
+    end
+
+    puts "Set syringe pump box:"
+    result = $stdin.gets.chomp.split(',').map{ |field| field.to_i }
+    if result.size == 4
+      s_pump_box = result
+    else
+      puts "Error parsing syringe pump box parameters. 4 integers spaced by comma required."
+      redo
+    end
   end
-
-  puts "Set syringe pump box:"
-  result = gets.chomp.split(',').map{ |field| field.to_i }
-  if result.size == 4
-    s_pump_box = result
-  else
-    puts "Error parsing syringe pump box parameters. 4 Integers spaced by comma required."
-    redo
-  end
-end
-box_settings('./boxes.settings', ph_box, s_pump_box)
+  box_settings('./boxes.settings', ph_box, s_pump_box)
 end
 
-# Phase 2: exec the screenshotting
-puts "Default: taking secondwise shots from 0 to the end. Proceed? (y/N)"
-ans = gets.chomp
-if ans == 'y'
-#mov.screenshot("./temp/frame%d.jpg", { vframes: mov.duration.to_i, frame_rate: '1', quality: 1}, validate: false)
-result = `ffmpeg -i #{filename} -f image2 -vframes 600 -r 1 -q:v 1 ./temp/frame%03d.jpg -y`
-end
-
-# Phase 3: OCR, put in html table for human check?
+# OCR, put in html table for human check?
 puts "Going on to OCR"
 ocr_out =File.open("ocr.out", "w")
-frames = Dir.glob("./temp/frame*.jpg").sort
 pHs = Array.new(frames.size)
 s_pump_boxes = Array.new(frames.size) {Hash.new}
 
@@ -161,13 +169,33 @@ frames.each_with_index do |frame, index|
 
   # OCR
   puts "Processing frame #{frame_name}"
-  ocr_out.puts frame_name
-  ocr_out.puts RTesseract.new("./temp/pump/#{frame_name}.jpg").to_box
-  #ocr_out.puts "pH: " + RTesseract.new("./temp/ph/#{frame_name}.jpg", options: :digits, :lang => 'ssd', :psm => 8).to_box.to_s
+  s_pump_boxes[index] = RTesseract.new("./temp/pump/#{frame_name}.jpg").to_box
   ph_result = `ssocr -d -1 -c digits ./temp/ph/#{frame_name}.jpg`.chomp
   ph_result = ph_result.gsub('_', '')
-  #ph = ph_result[0].to_f + ph_result[-2..-1].to_i / 100  #specific
-  ocr_out.puts "pH: #{ph_result[0]}.#{ph_result[-2..-1]}"
-  ocr_out.puts "--"
+  pHs[index] = "#{ph_result[0]}.#{ph_result[-2..-1]}"
+end
+
+volume_boxes = Array.new(frames.size)
+time_boxes = Array.new(frames.size)
+
+#s_pump_boxes.each do |boxes|
+(0..frames.size - 1).each do |index|
+  # Use index access instead of pushing to avoid missing boxes messing up alignment
+  s_pump_boxes[index].each do |box|
+    if box[:x_start] >= 0.5 * s_pump_box[2]
+      # 2nd column boxes
+      if box[:y_start] >= 0.2 * s_pump_box[3] && box[:y_start] <= 0.4 * s_pump_box[3]
+        # Remaining time
+      elsif box[:y_start] <= 0.2 * s_pump_box[3]
+        # Elapsed time 
+        time_boxes[index] = box
+      end
+      if box[:y_end] >= 0.75 * s_pump_box[3] && box[:x_start] <= 0.85 * s_pump_box[2]
+        # Volume
+        volume_boxes[index] = box
+      end
+    end
+  end
+  ocr_out.puts "#{index}\t#{time_boxes[index][:word]}\t#{volume_boxes[index][:word]}\t#{pHs[index]}"
 end
 ocr_out.close
