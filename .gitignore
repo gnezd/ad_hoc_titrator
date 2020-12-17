@@ -3,3 +3,4 @@ temp
 *.tsv
 *.ocr
 boxes.settings
+.DS_Store

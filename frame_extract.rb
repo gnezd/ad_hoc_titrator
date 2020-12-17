@@ -155,11 +155,27 @@ if ans == 'y'
   end
   box_settings('./boxes.settings', ph_box, s_pump_box)
 end
-
+filename = '/Users/bodegroup/Desktop/git_space/ad_hoc_titrator/Data/Py-Aldehyde.mp4' # test
 # OCR, put in html table for human check?
 puts "Going on to OCR. Clearing temporary cropped frames."
 puts `rm ./temp/ph/*.jpg; rm ./temp/pump/*.jpg`
-ocr_out =File.open("ocr.out", "w")
+while true
+  puts "Input filename to store result:"
+  if filename != nil
+    out_file = File.basename(filename, ".*") + '.tsv'
+    puts "(Empty input assuming: '#{out_file}')"
+  end
+  ans = $stdin.gets.chomp
+  out_file = ans if ans != ""
+
+  if File.exist? out_file
+    puts "'#{out_file}' already exists! Name output file otherwise."
+  else
+    break
+  end
+end
+
+ocr_out =File.open(out_file, "w")
 pHs = Array.new(frames.size)
 s_pump_boxes = Array.new(frames.size) {Hash.new}
 
