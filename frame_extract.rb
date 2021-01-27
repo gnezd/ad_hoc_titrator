@@ -155,7 +155,6 @@ if ans == 'y'
   end
   box_settings('./boxes.settings', ph_box, s_pump_box)
 end
-filename = '/Users/bodegroup/Desktop/git_space/ad_hoc_titrator/Data/Py-Aldehyde.mp4' # test
 # OCR, put in html table for human check?
 puts "Going on to OCR. Clearing temporary cropped frames."
 puts `rm ./temp/ph/*.jpg; rm ./temp/pump/*.jpg`
@@ -188,11 +187,13 @@ frames.each_with_index do |frame, index|
   s_pump_reading.write_to_file("./temp/pump/#{frame_name}.jpg")
 
   # OCR
-  puts "Processing frame #{frame_name}"
+  print "Processing frame #{frame_name}. "
   s_pump_boxes[index] = RTesseract.new("./temp/pump/#{frame_name}.jpg").to_box
+  print " s_pump OK."
   ph_result = `ssocr -d -1 -c digits ./temp/ph/#{frame_name}.jpg`.chomp
   ph_result = ph_result.gsub('_', '')
-  pHs[index] = "#{ph_result[0]}.#{ph_result[-2..-1]}"
+  pHs[index] = "#{ph_result[0..-3]}.#{ph_result[-2..-1]}"
+  print " pH OK: #{pHs[index]}\n"
 end
 
 volume_boxes = Array.new(frames.size)
@@ -216,6 +217,10 @@ time_boxes = Array.new(frames.size)
       end
     end
   end
+  begin
   ocr_out.puts "#{index}\t#{time_boxes[index][:word]}\t#{volume_boxes[index][:word]}\t#{pHs[index]}"
+  rescue
+  puts "trouble at frame#{index}"
+  end
 end
 ocr_out.close
